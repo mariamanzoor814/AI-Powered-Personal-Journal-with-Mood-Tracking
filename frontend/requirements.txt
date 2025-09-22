@@ -1,0 +1,2 @@
+# Add your frontend dependencies here, e.g.,
+# streamlit
