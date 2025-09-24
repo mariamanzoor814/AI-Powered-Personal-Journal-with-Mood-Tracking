@@ -28,6 +28,8 @@ def create_access_token(data: dict, expires_delta: int = settings.ACCESS_TOKEN_E
     return encoded_jwt
 
 # ✅ This is the missing function
+from uuid import UUID
+
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> models.User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -37,13 +39,14 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        username: str = payload.get("sub")
-        if username is None:
+        user_id: str = payload.get("sub")
+        if user_id is None:
             raise credentials_exception
-    except JWTError:
+        user_uuid = UUID(user_id)  # Convert string to UUID object
+    except (JWTError, ValueError):
         raise credentials_exception
 
-    user = db.query(models.User).filter(models.User.username == username).first()
+    user = db.query(models.User).filter(models.User.id == user_uuid).first()
     if user is None:
         raise credentials_exception
 
