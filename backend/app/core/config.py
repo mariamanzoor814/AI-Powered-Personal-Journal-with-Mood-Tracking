@@ -1,12 +1,19 @@
 # app/core/config.py
 from pydantic_settings import BaseSettings
 from fastapi_mail import ConnectionConfig
-
+import os
 
 from pydantic_settings import BaseSettings
 
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,  # 👈 show debug messages
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Emotional Support Bot"
+    PROJECT_NAME: str = "AI-Powered Personal Journal"
 
     # Database
     DATABASE_URL: str
@@ -14,7 +21,7 @@ class Settings(BaseSettings):
     # Auth / JWT
     SECRET_KEY: str
     ALGORITHM: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # Email (Mailtrap / SMTP)
     MAIL_USERNAME: str
@@ -25,6 +32,18 @@ class Settings(BaseSettings):
     MAIL_SERVER: str
     MAIL_TLS: bool = True
     MAIL_SSL: bool = False
+
+    # Hugging Face Inference API
+    HF_API_TOKEN: str = None
+    HF_SENTIMENT_MODEL: str = "distilbert-base-uncased-finetuned-sst-2-english"
+    HF_EMOTION_MODEL: str = "j-hartmann/emotion-english-distilroberta-base"
+
+     # --- DeepL / Translation settings ---
+    # Put your DeepL API key in .env as TRANSLATE_API_KEY
+    TRANSLATE_API_KEY: str | None = None
+    # Default to the free API endpoint; change to https://api.deepl.com/v2/translate for paid accounts
+    TRANSLATE_API_URL: str = "https://api-free.deepl.com/v2/translate"
+    TRANSLATE_TIMEOUT: int = 30  # seconds
 
     class Config:
         env_file = ".env"

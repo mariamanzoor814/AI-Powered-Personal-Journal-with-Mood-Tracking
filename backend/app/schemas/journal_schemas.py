@@ -1,4 +1,3 @@
-# Pydantic schemas for data validation.
 # backend/app/schemas/journal_schemas.py
 from pydantic import BaseModel
 from typing import Optional
@@ -10,8 +9,9 @@ class MoodAnalysisBase(BaseModel):
     score: float
 
 class MoodAnalysisOut(MoodAnalysisBase):
-    id: int
-    entry_id: int
+    id: str
+    entry_id: str
+    created_at: datetime
 
     class Config:
         orm_mode = True
@@ -26,8 +26,8 @@ class JournalUpdate(BaseModel):
     text: Optional[str] = None
 
 class JournalOut(BaseModel):
-    id: int
-    user_id: int
+    id: str
+    user_id: str
     text: str
     created_at: datetime
     updated_at: Optional[datetime]
