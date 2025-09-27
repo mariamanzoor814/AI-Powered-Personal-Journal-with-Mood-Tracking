@@ -241,16 +241,16 @@ def render_home_page():
     # 🚀 CTA button that actually changes the page
     col = st.container()
     with col:
-        if st.button("🚀 Get Started – Register or Login", key="cta-btn"):
+        if st.button("Get Started", key="cta-btn"):
             st.session_state.page = "login"   # 👈 go straight to login
             safe_rerun()
 
 def render_register_page():
     st.markdown("<h2 style='color:#5A67D8;'>Register</h2>", unsafe_allow_html=True)
     with st.form("register_form"):
-        username = st.text_input("Username")
-        email = st.text_input("Email")
-        password = st.text_input("Password", type="password")
+        username = st.text_input("Username", placeholder="Enter your Username")
+        email = st.text_input("Email",placeholder="Enter your email")
+        password = st.text_input("Password", type="password",placeholder="Enter your password")
         submitted = st.form_submit_button("Create account")
 
         if submitted:
@@ -286,8 +286,8 @@ def render_verify_page():
 def render_login_page():
     st.markdown("<h2 style='color:#5A67D8;'>Login</h2>", unsafe_allow_html=True)
     with st.form("login_form"):
-        email = st.text_input("Email")
-        password = st.text_input("Password", type="password")
+        email = st.text_input("Email",placeholder="Enter your email")
+        password = st.text_input("Password", type="password",placeholder="Enter your password")
         remember_me = st.checkbox("Remember me on this device")
         submitted = st.form_submit_button("Login")
 
@@ -710,7 +710,7 @@ def main():
     border-radius: 16px !important;
     box-shadow: 0 8px 28px rgba(0,0,0,0.08) !important;
     margin: 3rem auto !important;
-    max-width: 420px !important;
+    max-width: 520px !important;
     font-size: 15px !important;
   }
 
@@ -746,6 +746,7 @@ def main():
     border: none !important;
     background-image: none !important;
     transition: all 0.2s ease-in-out !important;
+    
   }
 
   /* Hover effect */
