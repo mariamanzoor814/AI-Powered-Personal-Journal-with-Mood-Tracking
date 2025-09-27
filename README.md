@@ -1,4 +1,5 @@
 # AI-Powered Personal Journal
+#frontend  : https://mariamanzoor814-ai-powered-persona-frontendstreamlit-app-gaype0.streamlit.app/
 
 An AI-powered personal journaling platform that allows users to write daily journals, track moods, and receive emotional insights.
 This project integrates NLP, translation, and sentiment analysis to provide users with meaningful reflections on their mental well-being.
@@ -23,3 +24,4 @@ This project integrates NLP, translation, and sentiment analysis to provide user
 ### 🔐 Authentication & Security
 - **JWT (JSON Web Tokens)** — Secure authentication
 - **Passlib & bcrypt** — Password hashing
+
