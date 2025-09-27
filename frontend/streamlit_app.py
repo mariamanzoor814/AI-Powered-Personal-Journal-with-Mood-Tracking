@@ -326,6 +326,11 @@ def render_journal_page():
 
     st.markdown("---")
 
+    st.markdown(
+    "<h2 style='color:#5A67D8;margin-top:2rem;'>📔 My Daily Journals</h2>",
+    unsafe_allow_html=True
+)
+
     # Fetch entries
     r = list_entries()
     if r.status_code != 200:
@@ -376,40 +381,49 @@ def render_journal_page():
             date_label = date_key.strftime("%d %B %Y")
 
         expander_label = f"{date_label} — {len(entries_for_date)} entr{'y' if len(entries_for_date)==1 else 'ies'}"
-        with st.expander(expander_label, expanded=False):
-            # For each entry in that date, show title, time and content, with edit/delete
+        with st.expander(expander_label, expanded=True):
+            # Now loop through each entry for that date
             for e in entries_for_date:
                 e_id = e.get("id") or f"no-id-{hash(e.get('content',''))}"
                 dt = e.get("_dt")
                 time_str = dt.strftime("%I:%M %p") if dt is not None else "Unknown time"
 
-                # Create a title from first line or truncate
                 content = e.get("content", "") or ""
-                first_line = content.splitlines()[0].strip() if content.splitlines() else ""
-                title = first_line if first_line else (content[:60].strip() + ("..." if len(content) > 60 else ""))
-                title = title or "Entry"
 
-                # Header row: bold title + time on the right
-                st.markdown(f"**{title}**  \n<small style='color:#475569;'> {time_str}</small>", unsafe_allow_html=True)
-
-                # show full content (preserve newlines)
-                st.write(content)
-
-                # Mood / sentiment summary (if any)
+                # Get mood analysis safely
                 mood = e.get("mood_analysis") or {}
-                if mood:
-                    try:
-                        sentiment = mood.get("sentiment", "unknown")
-                        emotion = mood.get("emotion", "unknown")
-                        score = mood.get("score", 0.0)
-                        st.markdown(
-                            f"**Sentiment:** <span style='font-weight:bold'>{sentiment}</span> — "
-                            f"**Emotion:** <span style='font-weight:bold'>{emotion}</span> — "
-                            f"**Score:** <span style='font-weight:bold'>{score:.2f}</span>",
-                            unsafe_allow_html=True,
-                        )
-                    except Exception:
-                        pass
+                sentiment = mood.get("sentiment", "Unknown")
+                emotion = mood.get("emotion", "Unknown")
+                score = mood.get("score", 0.0)
+
+                # --- Title row: Emotion (big) + Time ---
+                st.markdown(
+                    f"""
+                    <div style='display:flex; justify-content:space-between; align-items:center;'>
+                        <h2 style='color:#5A67D8; margin:0;'>{emotion}</h2>
+                        <span style='font-size:1.1rem; color:#475569;'>{time_str}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                # --- Journal content ---
+                st.markdown(
+                    f"<p style='font-size:1.3rem; line-height:1.6;'>{content}</p>",
+                    unsafe_allow_html=True,
+                )
+
+                # --- Sentiment / Emotion / Score ---
+                st.markdown(
+                    f"""
+                    <p style='font-size:1.5rem;'>
+                        <b>Sentiment:</b> {sentiment} &nbsp; | &nbsp;
+                        <b>Emotion:</b> {emotion} &nbsp; | &nbsp;
+                        <b>Confidence:</b> {score:.2f}
+                    </p>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
                 # Edit / Delete controls
                 if st.session_state.get(f"edit_mode_{e_id}", False):
@@ -655,26 +669,31 @@ def main():
     
     # --- Modern CSS Theme ---
     st.markdown("""
-<style>
+<style> 
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
   :root{
-    --primary-color: #5A67D8;
-    --primary-color-dark: #4C51BF;
-    --secondary-color: #48BB78;
-    --accent-color: #F6AD55;
-    --background-color: #F9FAFB;
+    --primary-color: #5A67D8;        /* Deep Indigo */
+    --primary-color-dark: #4C51BF;   /* Darker Indigo */
+    --secondary-color: #48BB78;      /* Calm Green */
+    --accent-color: #F6AD55;         /* Warm Orange */
+    --background-color: #F9FAFB;     /* Light background */
     --text-color: #2D3748;
     --light-gray: #E2E8F0;
     --white: #FFFFFF;
     --button-width: 220px;
   }
-  html, body, [class*="st-"], [class*="css-"]{
+
+  /* ✅ Keep whole app background light */
+  .stApp, .main .block-container, html, body {
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
     font-family: 'Poppins', sans-serif;
-    background-color: var(--background-color);
-    color: var(--text-color);
   }
+
+  /* Sidebar background */
   section[data-testid="stSidebar"],
-  div[data-testid="stSidebar"]{
+  div[data-testid="stSidebar"] {
     background-color: #dedede !important;
     border-right: 1px solid rgba(0,0,0,0.06);
   }
@@ -683,108 +702,111 @@ def main():
     color: #000000 !important;
     background-color: transparent !important;
   }
- /* Global solid indigo buttons */
-.stButton>button,
-div[data-testid="stFormSubmitButton"] button {
-    width: var(--button-width) !important;
-    display: inline-block !important;
-    margin: 8px auto !important;
-    padding: 10px 14px !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    text-align: center !important;
 
-    background-color: var(--primary-color) !important;
-    background-image: none !important;
-    color: var(--white) !important;
-
-    border: none !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    transition: transform .08s ease, box-shadow .08s ease, background-color .12s ease;
-}
-.stButton>button:hover,
-div[data-testid="stFormSubmitButton"] button:hover {
-    background-color: var(--primary-color-dark) !important;
-    background-image: none !important;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(90,103,216,0.15) !important;
-}
-.stButton>button:active,
-div[data-testid="stFormSubmitButton"] button:active {
-    transform: translateY(0);
-    box-shadow: 0 3px 8px rgba(90,103,216,0.12) !important;
-}
-.stButton>button:focus,
-div[data-testid="stFormSubmitButton"] button:focus {
-    outline: none !important;
-    box-shadow: 0 0 0 4px rgba(90,103,216,0.25) !important;
-}
-
-
-  section[data-testid="stSidebar"] .stButton>button,
-  div[data-testid="stSidebar"] .stButton>button,
-  section[data-testid="stSidebar"] button,
-  div[data-testid="stSidebar"] button {
-    width: var(--button-width) !important;
-    box-sizing: border-box !important;
-    display: block !important;
-    margin: 10px auto !important;
-    padding: 10px 12px !important;
-    border-radius: 8px !important;
-    background-color: var(--primary-color) !important;
-    color: var(--white) !important;
-    border: 1px solid rgba(0,0,0,0.06) !important;
-    font-weight: 600 !important;
-    text-align: center !important;
+/* ✨ Form container (Login/Register card) */
+  .stForm {
+    background: var(--white) !important;
+    padding: 2.5rem !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.08) !important;
+    margin: 3rem auto !important;
+    max-width: 420px !important;
+    font-size: 15px !important;
   }
-  section[data-testid="stSidebar"] .stButton>button:hover,
-  div[data-testid="stSidebar"] .stButton>button:hover,
-  section[data-testid="stSidebar"] button:hover,
-  div[data-testid="stSidebar"] button:hover {
-    background-color: var(--primary-color-dark) !important;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(90,103,216,0.08) !important;
-  }
-  .main .block-container{
-    background: transparent !important;
-  }
-  input, textarea, select{
-    border-radius: 0.5rem !important;
+
+  /* 📝 Input fields */
+  input[type="text"], input[type="password"], input[type="email"], textarea {
+    background: var(--white) !important;
     border: 1px solid var(--light-gray) !important;
-    padding: 0.45rem !important;
-    color: #111827 !important;
+    color: var(--text-color) !important;
+    border-radius: 10px !important;
+    padding: 12px 14px !important;
+    width: 100% !important;
+    font-size: 15px !important;
   }
-  input:focus, textarea:focus{
+  input:focus, textarea:focus {
     border-color: var(--primary-color) !important;
-    box-shadow: 0 0 0 6px rgba(90,103,216,0.06) !important;
+    box-shadow: 0 0 0 3px rgba(90,103,216,0.25) !important;
+    outline: none !important;
   }
-  @media (max-width: 520px) {
-    :root { --button-width: 100% !important; }
-    .stButton>button, section[data-testid="stSidebar"] .stButton>button {
-      width: 100% !important;
-      margin-left: 0 !important;
-      margin-right: 0 !important;
-    }
+
+    
+  /* 🔥 Primary Buttons (Login/Register/Verify) */
+  button[kind="primary"],
+  div.stButton>button,
+  div[data-testid="stFormSubmitButton"] button,
+  form .stButton>button {
+    width: var(--button-width) !important;
+    padding: 12px 16px !important;
+    border-radius: 10px !important;
+    background-color: var(--primary-color) !important;
+    color: var(--white) !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    border: none !important;
+    background-image: none !important;
+    transition: all 0.2s ease-in-out !important;
   }
-  div[data-testid="stNotification"] {
-    background-color: var(--secondary-color) !important;
-    border-left: 4px solid var(--secondary-color) !important;
+
+  /* Hover effect */
+  button[kind="primary"]:hover,
+  div.stButton>button:hover,
+  div[data-testid="stFormSubmitButton"] button:hover,
+  form .stButton>button:hover {
+    background-color: var(--primary-color-dark) !important;
+    box-shadow: 0 6px 18px rgba(90,103,216,0.18) !important;
+    transform: translateY(-2px);
   }
-  div[data-testid="stNotification"] p {
-    color: var(--secondary-color) !important;
+
+  /* ✅ Checkbox styling */
+  .stCheckbox input[type="checkbox"] {
+    accent-color: var(--primary-color) !important;
+    transform: scale(1.2);
+    margin-right: 8px;
+  }
+  .stCheckbox label {
+    font-size: 14px !important;
+    color: var(--text-color) !important;
     font-weight: 500 !important;
   }
-  div[data-testid="stNotification"] .stButton>button {
-    background-color: var(--secondary-color) !important;
-    border-color: var(--secondary-color) !important;
-    color: var(--secondary-color) !important;
-    background-image: none !important;
+
+  /* Titles */
+  h1, h2, h3, h4 {
+    color: var(--primary-color) !important;
+    font-weight: 700 !important;
   }
-  div[data-testid="stNotification"] .stButton>button:hover {
-    background-color: #3fa86a !important;
-    box-shadow: 0 6px 18px rgba(72,187,120,0.08) !important;
+  
+
+                
+ /* ✅ Force visible text inside login/register form */
+  .stForm, .stForm * {
+      color: var(--text-color) !important;
   }
+
+  /* ✅ Labels and placeholder text */
+  label, .stTextInput label, .stPasswordInput label, .stEmailInput label {
+      font-size: 15px !important;
+      font-weight: 500 !important;
+      color: var(--text-color) !important;
+  }
+  input::placeholder, textarea::placeholder {
+      color: #718096 !important; /* softer gray for hint text */
+      font-size: 15px !important;
+  }
+
+  /* ✅ Bigger inputs */
+  input[type="text"], input[type="password"], input[type="email"], textarea {
+      font-size: 16px !important;
+  }
+
+  /* ✅ Buttons inside login/register form */
+  .stForm .stButton>button {
+      font-size: 16px !important;
+      color: var(--white) !important;
+  }
+ 
 </style>
+
     """, unsafe_allow_html=True)
 
     st.markdown(
