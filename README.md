@@ -1,3 +1,10 @@
+---
+title: AI-Powered Personal Journal
+sdk: docker
+app_port: 7860
+---
+A FastAPI backend for the Emotional Support Bot.
+
 # AI-Powered Personal Journal
 #frontend  : https://mariamanzoor814-ai-powered-persona-frontendstreamlit-app-gaype0.streamlit.app/
 
