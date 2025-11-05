@@ -10,6 +10,16 @@ app_port: 7860
 An AI-powered personal journaling platform that allows users to write daily journals, track moods, and receive emotional insights.
 This project integrates NLP, translation, and sentiment analysis to provide users with meaningful reflections on their mental well-being.
 
+---
+#Gallery
+
+<img width="1920" height="1040" alt="p1" src="https://github.com/user-attachments/assets/f700c4e1-6c5b-4b99-aaa7-f2c813ce78ad" />
+<img width="1920" height="1040" alt="p2" src="https://github.com/user-attachments/assets/40ac3f44-1e42-42b3-940f-507d3cbc8e00" />
+<img width="1920" height="1040" alt="p3" src="https://github.com/user-attachments/assets/74e8e7d4-cb63-4f2e-b946-c2f05dea970a" />
+
+
+---
+
 ## ⚙️ Tech Stack
 
 ### 🎨 Frontend
