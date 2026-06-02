@@ -5,7 +5,6 @@ import pandas as pd
 import altair as alt
 from itertools import groupby
 from datetime import datetime, timedelta
-import json
 
 
 # --- Configuration ---
@@ -152,475 +151,201 @@ def edit_entry(entry_id, new_content):
     url = f"{API_BASE}/journals/{entry_id}"
     return requests.put(url, json={"content": new_content}, headers=auth_headers())
 
-# --- MODERN ANIMATED LANDING PAGE ---
+# --- UI ---
+def render_sidebar():
+    with st.sidebar:
+        st.markdown("<div style='margin-bottom:20px'></div>", unsafe_allow_html=True)
+        st.title("Menu")
+        if st.session_state.get("token"):
+            if st.button("Journal", key="sidebar-journal"):
+                st.session_state.page = "journal"
+                safe_rerun()
+            if st.button("Dashboard", key="sidebar-dashboard"):
+                st.session_state.page = "dashboard"
+                safe_rerun()
+            if st.button("Logout", key="sidebar-logout"):
+                clear_token()
+                st.session_state.username = None
+                st.session_state.page = "home"
+                st.success("Logged out.")
+                safe_rerun()
+        else:
+            if st.button("Home", key="sidebar-home"):
+                st.session_state.page = "home"
+                safe_rerun()
+            if st.button("Register", key="sidebar-register"):
+                st.session_state.page = "register"
+                safe_rerun()
+            if st.button("Login", key="sidebar-login"):
+                st.session_state.page = "login"
+                safe_rerun()
 def render_home_page():
     st.markdown(
         """
         <style>
-            @keyframes fadeInDown {
-                from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); }
+            .card {
+                background: #f9f9ff;
+                border-radius: 14px;
+                padding: 1.2rem;
+                margin: 1rem 0;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.07);
             }
-            @keyframes fadeInUp {
-                from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); }
+            .card h3 {
+                color: #5A67D8;
+                font-family: Poppins, sans-serif;
+                margin-bottom: 0.5rem;
             }
-            @keyframes slideInLeft {
-                from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); }
-            }
-            @keyframes slideInRight {
-                from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); }
-            }
-            @keyframes float {
-                0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); }
-            }
-            @keyframes glow {
-                0%, 100% { box-shadow: 0 0 20px rgba(147, 112, 219, 0.3); }
-                50% { box-shadow: 0 0 40px rgba(147, 112, 219, 0.6); }
-            }
-            @keyframes rotateCard {
-                0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); }
-            }
-            
-            .hero-wrapper {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-                border-radius: 30px;
-                padding: 5rem 2rem;
-                margin: 2rem 0;
-                position: relative;
-                overflow: hidden;
-                box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
-                animation: fadeInDown 1s ease-out;
-            }
-            
-            .hero-wrapper::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.15) 0%, transparent 50%),
-                            radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);
-                animation: glow 3s ease-in-out infinite;
-            }
-            
-            .hero-title {
-                font-size: 3.5rem;
-                font-weight: 900;
-                color: white;
-                margin: 0;
-                position: relative;
-                z-index: 1;
-                animation: fadeInDown 1.2s ease-out;
-                text-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            }
-            
-            .hero-subtitle {
-                font-size: 1.2rem;
-                color: rgba(255,255,255,0.95);
-                margin-top: 1rem;
-                position: relative;
-                z-index: 1;
-                animation: fadeInUp 1.2s ease-out;
-            }
-            
-            .feature-card-home {
-                background: white;
-                border-radius: 20px;
-                padding: 2.5rem;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                border: 2px solid transparent;
-                animation: fadeInUp 0.8s ease-out backwards;
-                position: relative;
-                overflow: hidden;
-            }
-            
-            .feature-card-home:nth-child(1) { animation-delay: 0.1s; }
-            .feature-card-home:nth-child(2) { animation-delay: 0.2s; }
-            .feature-card-home:nth-child(3) { animation-delay: 0.3s; }
-            
-            .feature-card-home:hover {
-                transform: translateY(-20px) scale(1.02);
-                box-shadow: 0 30px 60px rgba(102, 126, 234, 0.25);
-                border-color: #9370DB;
-            }
-            
-            .feature-icon-home {
-                font-size: 3.5rem;
-                margin-bottom: 1rem;
-                animation: float 3s ease-in-out infinite;
-            }
-            
-            .feature-card-home:nth-child(2) .feature-icon-home { animation-delay: -1s; }
-            .feature-card-home:nth-child(3) .feature-icon-home { animation-delay: -2s; }
-            
-            .feature-title-home {
-                font-size: 1.3rem;
-                font-weight: 700;
-                color: #333;
-                margin: 0 0 0.5rem 0;
-            }
-            
-            .feature-desc-home {
-                color: #666;
+            .card p {
+                color: #555;
                 font-size: 0.95rem;
-                line-height: 1.6;
-                margin: 0;
             }
-            
-            .cta-button {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            .cta {
+                text-align: center;
+                margin: 2rem 0;
+            }
+            .cta button {
+                background: #5A67D8;
                 color: white;
-                border: none;
-                border-radius: 50px;
-                padding: 1rem 2.5rem;
+                font-family: Poppins, sans-serif;
                 font-size: 1.1rem;
-                font-weight: 700;
+                padding: 0.9rem 1.8rem;
+                border-radius: 10px;
+                border: none;
                 cursor: pointer;
-                box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
-                transition: all 0.3s ease;
-                animation: fadeInUp 1.4s ease-out;
-                margin-top: 2rem;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+                transition: background 0.2s ease-in-out;
             }
-            
-            .cta-button:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 25px 50px rgba(102, 126, 234, 0.4);
+            .cta button:hover {
+                background: #4C51BF;
             }
         </style>
-        
-        <div class="hero-wrapper">
-            <h1 class="hero-title">✨ MindFlow</h1>
-            <p class="hero-subtitle">
-                Discover your emotions, understand your patterns, transform your well-being.<br>
-                Your AI-powered personal journal that listens, analyzes, and inspires.
-            </p>
+
+        <div class="card">
+            <h3>😊 Mood Analysis</h3>
+            <p>Automatic sentiment and emotion scoring powered by AI.</p>
+        </div>
+
+        <div class="card">
+            <h3>📊 Analytics Dashboard</h3>
+            <p>View interactive charts of daily, weekly, and monthly trends.</p>
+        </div>
+
+        <div class="card">
+            <h3>💡 Positive Prompts</h3>
+            <p>Receive context-aware motivational messages every day.</p>
         </div>
         """,
         unsafe_allow_html=True
     )
-    
-    # Features
-    col1, col2, col3 = st.columns(3, gap="large")
-    
-    with col1:
-        st.markdown(
-            """
-            <div class="feature-card-home">
-                <div class="feature-icon-home">🧠</div>
-                <div class="feature-title-home">Smart Analysis</div>
-                <div class="feature-desc-home">
-                    AI-powered sentiment & emotion detection powered by advanced NLP models.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    
-    with col2:
-        st.markdown(
-            """
-            <div class="feature-card-home">
-                <div class="feature-icon-home">📈</div>
-                <div class="feature-title-home">Beautiful Insights</div>
-                <div class="feature-desc-home">
-                    Visualize your mood trends with stunning interactive charts and analytics.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    
-    with col3:
-        st.markdown(
-            """
-            <div class="feature-card-home">
-                <div class="feature-icon-home">💪</div>
-                <div class="feature-title-home">Personal Growth</div>
-                <div class="feature-desc-home">
-                    Receive AI-powered recommendations tailored to your emotional well-being.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    
-    col_btn = st.columns([1, 2, 1])
-    with col_btn[1]:
-        if st.button("🚀 Get Started", key="cta-home", use_container_width=True):
-            st.session_state.page = "register"
+
+    # 🚀 CTA button that actually changes the page
+    col = st.container()
+    with col:
+        if st.button("Get Started", key="cta-btn"):
+            st.session_state.page = "login"   # 👈 go straight to login
             safe_rerun()
 
-# --- SIDEBAR NAVIGATION ---
-def render_sidebar():
-    with st.sidebar:
-        st.markdown(
-            """
-            <div style='
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 15px;
-                padding: 1.5rem;
-                margin-bottom: 2rem;
-                text-align: center;
-                color: white;
-            '>
-                <div style='font-size: 2rem;'>✨</div>
-                <h2 style='margin: 0.5rem 0 0 0; font-size: 1.5rem;'>MindFlow</h2>
-                <p style='margin: 0.3rem 0 0 0; font-size: 0.85rem; opacity: 0.9;'>Your Digital Therapist</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        
-        st.markdown("---")
-        
-        if st.session_state.get("token"):
-            st.markdown(
-                f"<p style='text-align: center; color: #667eea; font-weight: 600; margin-bottom: 1.5rem;'>👋 Welcome!</p>",
-                unsafe_allow_html=True
-            )
-            
-            if st.button("📔 My Journal", key="sidebar-journal", use_container_width=True):
-                st.session_state.page = "journal"
-                safe_rerun()
-            
-            if st.button("📊 Dashboard", key="sidebar-dashboard", use_container_width=True):
-                st.session_state.page = "dashboard"
-                safe_rerun()
-            
-            st.markdown("---")
-            
-            if st.button("🚪 Logout", key="sidebar-logout", use_container_width=True):
-                clear_token()
-                st.session_state.username = None
-                st.session_state.page = "home"
-                st.balloons()
-                safe_rerun()
-        else:
-            if st.button("📝 Sign In", key="sidebar-login", use_container_width=True):
-                st.session_state.page = "login"
-                safe_rerun()
-            
-            if st.button("✍️ Register", key="sidebar-register", use_container_width=True):
-                st.session_state.page = "register"
-                safe_rerun()
-
-# --- AUTH PAGES ---
 def render_register_page():
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col2:
-        st.markdown(
-            """
-            <style>
-                .auth-card {
-                    background: white;
-                    border-radius: 20px;
-                    padding: 2.5rem;
-                    box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15);
-                    border: 1px solid rgba(102, 126, 234, 0.1);
-                    animation: slideInRight 0.6s ease-out;
-                }
-                
-                .auth-title {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                    font-size: 2rem;
-                    font-weight: 800;
-                    margin: 0 0 0.5rem 0;
-                }
-                
-                .auth-subtitle {
-                    color: #999;
-                    margin: 0 0 2rem 0;
-                    font-size: 0.95rem;
-                }
-            </style>
-            
-            <div class="auth-card">
-                <h2 class="auth-title">Create Account</h2>
-                <p class="auth-subtitle">Join 10K+ mindful journalers</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        
-        with st.form("register_form"):
-            username = st.text_input("👤 Username", placeholder="Choose your username")
-            email = st.text_input("📧 Email", placeholder="your.email@example.com")
-            password = st.text_input("🔐 Password", type="password", placeholder="Create a strong password")
-            submitted = st.form_submit_button("Create Account", use_container_width=True)
+    st.markdown("<h2 style='color:#5A67D8;'>Register</h2>", unsafe_allow_html=True)
+    with st.form("register_form"):
+        username = st.text_input("Username", placeholder="Enter your Username")
+        email = st.text_input("Email",placeholder="Enter your email")
+        password = st.text_input("Password", type="password",placeholder="Enter your password")
+        submitted = st.form_submit_button("Create account")
 
-            if submitted:
-                r = post_register(username, email, password)
-                if r.status_code == 201:
-                    st.success("✅ Check your email for verification code!")
-                    st.session_state.email_for_verification = email
-                    st.session_state.page = "verify"
-                    safe_rerun()
-                else:
-                    try:
-                        st.error(r.json().get("detail", "Registration failed."))
-                    except:
-                        st.error(f"Error: {r.text}")
-
-def render_verify_page():
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col2:
-        st.markdown(
-            """
-            <div class="auth-card">
-                <h2 class="auth-title">Verify Account</h2>
-                <p class="auth-subtitle">Enter the code we sent to your email</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        
-        email = st.text_input("📧 Email", value=st.session_state.get("email_for_verification", ""), disabled=True)
-        otp = st.text_input("🔑 Verification Code", placeholder="6-digit code")
-
-        if st.button("Verify", use_container_width=True):
-            r = post_verify(email, otp)
-            if r.status_code == 200:
-                st.success("✅ Account verified!")
-                st.session_state.page = "login"
-                st.balloons()
+        if submitted:
+            r = post_register(username, email, password)
+            if r.status_code == 201:
+                st.success("Registration successful! Please check your email for a verification OTP.")
+                st.session_state.email_for_verification = email
+                st.session_state.page = "verify"
                 safe_rerun()
             else:
-                st.error("Invalid or expired code")
+                try:
+                    st.error(r.json().get("detail", "An unknown error occurred."))
+                except requests.exceptions.JSONDecodeError:
+                    st.error(f"Server error: {r.text}")
+
+def render_verify_page():
+    st.markdown("<h2 style='color:#5A67D8;'>Verify Your Account</h2>", unsafe_allow_html=True)
+    email = st.text_input("Email", value=st.session_state.get("email_for_verification", ""))
+    otp = st.text_input("OTP Code")
+
+    if st.button("Verify", key="verify-btn"):
+        r = post_verify(email, otp)
+        if r.status_code == 200:
+            st.success("Account verified successfully! You can now log in.")
+            st.session_state.page = "login"
+            safe_rerun()
+        else:
+            try:
+                st.error(r.json().get("detail", "Verification failed."))
+            except requests.exceptions.JSONDecodeError:
+                st.error(f"Server error: {r.text}")
 
 def render_login_page():
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col2:
-        st.markdown(
-            """
-            <div class="auth-card">
-                <h2 class="auth-title">Welcome Back</h2>
-                <p class="auth-subtitle">Sign in to your MindFlow account</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        
-        with st.form("login_form"):
-            email = st.text_input("📧 Email", placeholder="your.email@example.com")
-            password = st.text_input("🔐 Password", type="password", placeholder="Enter your password")
-            remember_me = st.checkbox("Remember me on this device")
-            submitted = st.form_submit_button("Sign In", use_container_width=True)
+    st.markdown("<h2 style='color:#5A67D8;'>Login</h2>", unsafe_allow_html=True)
+    with st.form("login_form"):
+        email = st.text_input("Email",placeholder="Enter your email")
+        password = st.text_input("Password", type="password",placeholder="Enter your password")
+        remember_me = st.checkbox("Remember me on this device")
+        submitted = st.form_submit_button("Login")
 
-            if submitted:
-                r = post_login(email, password)
-                if r.status_code == 200:
-                    token = r.json().get("access_token")
-                    st.session_state.token = token
-                    st.session_state.username = email
-                    save_token(token, username=email, remember=remember_me)
-                    st.session_state.page = "journal"
-                    st.balloons()
-                    safe_rerun()
-                else:
-                    st.error("Invalid email or password")
+        if submitted:
+            r = post_login(email, password)
+            if r.status_code == 200:
+                token = r.json().get("access_token")
+                st.session_state.token = token
+                st.session_state.username = email
+                save_token(token, username=email, remember=remember_me)
+                st.session_state.page = "journal"
+                safe_rerun()
+            else:
+                try:
+                    st.error(r.json().get("detail", "Login failed."))
+                except requests.exceptions.JSONDecodeError:
+                    st.error(f"Server error: {r.text}")
 
-# --- JOURNAL PAGE ---
 def render_journal_page():
     if not st.session_state.get("token"):
         st.warning("Please log in to access your journal.")
         return
 
-    st.markdown(
-        """
-        <style>
-            .journal-header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 20px;
-                padding: 2.5rem;
-                color: white;
-                margin-bottom: 2rem;
-                box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
-            }
-            
-            .journal-title {
-                font-size: 2.5rem;
-                font-weight: 800;
-                margin: 0 0 0.5rem 0;
-            }
-            
-            .journal-subtitle {
-                margin: 0;
-                opacity: 0.9;
-            }
-            
-            .entry-card {
-                background: white;
-                border-radius: 15px;
-                padding: 1.5rem;
-                margin-bottom: 1rem;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-                border-left: 4px solid #9370DB;
-                transition: all 0.3s ease;
-            }
-            
-            .entry-card:hover {
-                box-shadow: 0 15px 40px rgba(102, 126, 234, 0.15);
-                transform: translateY(-3px);
-            }
-            
-            .emotion-badge {
-                display: inline-block;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 0.5rem 1rem;
-                border-radius: 50px;
-                font-weight: 600;
-                font-size: 0.9rem;
-                margin-right: 0.5rem;
-            }
-        </style>
-        
-        <div class="journal-header">
-            <h1 class="journal-title">📔 My Journal</h1>
-            <p class="journal-subtitle">Reflect, analyze, and grow</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    # New Entry Section
-    st.markdown("### ✨ Write a New Entry")
-    text = st.text_area("What's on your mind?", height=150, placeholder="Share your thoughts, feelings, experiences...")
-    
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        if st.button("💾 Save Entry", key="save-entry", use_container_width=True):
-            if text.strip():
-                r = create_entry(text)
-                if r.status_code in [200, 201]:
-                    st.success("✅ Entry saved successfully!")
-                    safe_rerun()
-                else:
-                    st.error("Failed to save")
-            else:
-                st.warning("Please write something")
-    
+    st.markdown("<h2 style='color:#48BB78;'>My Journals</h2>", unsafe_allow_html=True)
+    text = st.text_area("What's on your mind?", height=200, key="journal_text_area")
+    if st.button("Save Entry", key="save-entry-btn"):
+        r = create_entry(text)
+        if r.status_code in [200, 201]:
+            st.success("Entry saved successfully.")
+            safe_rerun()
+        else:
+            try:
+                st.error(r.json().get("detail", "Failed to save entry."))
+            except requests.exceptions.JSONDecodeError:
+                st.error(f"Server error: {r.text}")
+
     st.markdown("---")
-    
-    # Entries List
-    st.markdown("### 📚 Your Entries")
+
+    st.markdown(
+    "<h2 style='color:#5A67D8;margin-top:2rem;'>📔 My Daily Journals</h2>",
+    unsafe_allow_html=True
+)
+
+    # Fetch entries
     r = list_entries()
     if r.status_code != 200:
-        st.error("Could not load entries")
+        try:
+            st.error(r.json().get("detail", "Could not load entries."))
+        except requests.exceptions.JSONDecodeError:
+            st.error(f"Server error: {r.text}")
         return
 
     raw_entries = r.json().get("entries", []) or []
     if not raw_entries:
-        st.info("No entries yet — start writing to begin your journey!")
+        st.info("No journal entries yet — write something to get started!")
         return
 
+    # Parse and attach datetime objects safely
     processed = []
     for e in raw_entries:
         created_raw = e.get("created_at") or ""
@@ -628,99 +353,142 @@ def render_journal_page():
             dt = pd.to_datetime(created_raw)
             if pd.isna(dt):
                 dt = None
-        except:
+        except Exception:
             dt = None
         processed.append({**e, "_dt": dt})
 
+    # Sort entries by datetime descending (None last)
     processed.sort(key=lambda x: x["_dt"] if x["_dt"] is not None else pd.Timestamp.min, reverse=True)
 
+    # Group by date (use date() from datetime) — None (unknown date) will be grouped under "Unknown date"
     def date_key(item):
         dt = item.get("_dt")
-        return dt.date() if dt is not None else None
+        if dt is None:
+            return None
+        return dt.date()
 
     grouped = []
     for key, group in groupby(processed, key=date_key):
-        grouped.append((key, list(group)))
+        group_list = list(group)
+        grouped.append((key, group_list))
 
+    # Render grouped entries: each date as an expander
     for date_key, entries_for_date in grouped:
-        date_label = date_key.strftime("%d %B %Y") if date_key else "Unknown Date"
-        
-        with st.expander(f"{date_label} ({len(entries_for_date)} entries)", expanded=True):
+        if date_key is None:
+            date_label = "Unknown Date"
+        else:
+            # Human-friendly date like "12 June 2025"
+            date_label = date_key.strftime("%d %B %Y")
+
+        expander_label = f"{date_label} — {len(entries_for_date)} entr{'y' if len(entries_for_date)==1 else 'ies'}"
+        with st.expander(expander_label, expanded=True):
+            # Now loop through each entry for that date
             for e in entries_for_date:
                 e_id = e.get("id") or f"no-id-{hash(e.get('content',''))}"
                 dt = e.get("_dt")
-                time_str = dt.strftime("%I:%M %p") if dt else "Unknown"
-                content = e.get("content", "")
+                time_str = dt.strftime("%I:%M %p") if dt is not None else "Unknown time"
 
+                content = e.get("content", "") or ""
+
+                # Get mood analysis safely
                 mood = e.get("mood_analysis") or {}
-                emotion = mood.get("emotion", "Unknown")
                 sentiment = mood.get("sentiment", "Unknown")
+                emotion = mood.get("emotion", "Unknown")
                 score = mood.get("score", 0.0)
 
+                # --- Title row: Emotion (big) + Time ---
                 st.markdown(
                     f"""
-                    <div class="entry-card">
-                        <div style='display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;'>
-                            <div>
-                                <h3 style='color: #667eea; margin: 0; font-size: 1.3rem;'>{emotion}</h3>
-                                <p style='color: #999; margin: 0.2rem 0 0 0; font-size: 0.85rem;'>{time_str}</p>
-                            </div>
-                            <div style='text-align: right;'>
-                                <p style='color: #666; margin: 0; font-size: 0.85rem;'><strong>Confidence:</strong> {score:.0%}</p>
-                            </div>
-                        </div>
-                        
-                        <p style='background: #f5f5f5; padding: 1rem; border-radius: 10px; margin-bottom: 1rem; color: #333; line-height: 1.6;'>{content}</p>
-                        
-                        <div>
-                            <span class="emotion-badge">{emotion}</span>
-                            <span class="emotion-badge" style='background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);'>{sentiment}</span>
-                        </div>
+                    <div style='display:flex; justify-content:space-between; align-items:center;'>
+                        <h2 style='color:#5A67D8; margin:0;'>{emotion}</h2>
+                        <span style='font-size:1.1rem; color:#475569;'>{time_str}</span>
                     </div>
                     """,
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("✏️ Edit", key=f"edit-{e_id}", use_container_width=True):
-                        st.session_state[f"edit_mode_{e_id}"] = True
-                        safe_rerun()
-                with col2:
-                    if st.button("🗑️ Delete", key=f"del-{e_id}", use_container_width=True):
-                        dr = delete_entry(e_id)
-                        if dr.status_code in (200, 204):
-                            st.success("Deleted!")
-                            safe_rerun()
-                        else:
-                            st.error("Delete failed")
+                # --- Journal content ---
+                st.markdown(
+                    f"<p style='font-size:1.3rem; line-height:1.6;'>{content}</p>",
+                    unsafe_allow_html=True,
+                )
 
-# --- DASHBOARD PAGE ---
+                # --- Sentiment / Emotion / Score ---
+                st.markdown(
+                    f"""
+                    <p style='font-size:1.5rem;'>
+                        <b>Sentiment:</b> {sentiment} &nbsp; | &nbsp;
+                        <b>Emotion:</b> {emotion} &nbsp; | &nbsp;
+                        <b>Confidence:</b> {score:.2f}
+                    </p>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                # Edit / Delete controls
+                if st.session_state.get(f"edit_mode_{e_id}", False):
+                    new_content = st.text_area("Edit entry", value=content, key=f"edit-area-{e_id}")
+                    edit_col1, edit_col2 = st.columns(2)
+                    with edit_col1:
+                        if st.button("Save Edit", key=f"save-edit-{e_id}"):
+                            er = edit_entry(e_id, new_content)
+                            if er.status_code == 200:
+                                st.success("Entry updated.")
+                                # clear edit mode
+                                if f"edit_mode_{e_id}" in st.session_state:
+                                    del st.session_state[f"edit_mode_{e_id}"]
+                                safe_rerun()
+                            else:
+                                st.error("Edit failed.")
+                    with edit_col2:
+                        if st.button("Cancel Edit", key=f"cancel-edit-{e_id}"):
+                            if f"edit_mode_{e_id}" in st.session_state:
+                                del st.session_state[f"edit_mode_{e_id}"]
+                            safe_rerun()
+                else:
+                    col1, col2 = st.columns([1, 1])
+                    with col1:
+                        if st.button("Edit", key=f"edit-{e_id}"):
+                            st.session_state[f"edit_mode_{e_id}"] = True
+                            safe_rerun()
+                    with col2:
+                        if st.button("Delete", key=f"del-{e_id}"):
+                            # ask server to delete
+                            dr = delete_entry(e_id)
+                            if dr.status_code in (200, 204):
+                                st.success("Deleted.")
+                            else:
+                                try:
+                                    st.error(dr.json().get("detail", "Delete failed."))
+                                except Exception:
+                                    st.error("Delete failed.")
+                            safe_rerun()
+
+                st.markdown("---")
+
+
+
+
 def render_dashboard_page():
     if not st.session_state.get("token"):
         st.warning("Please log in to view the dashboard.")
         return
 
-    st.markdown(
-        """
-        <div class="journal-header">
-            <h1 class="journal-title">📊 Your Mood Insights</h1>
-            <p class="journal-subtitle">Track your emotional journey</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    
+    st.markdown("<h1 style='color:#5A67D8;'>📊 Mood Trends</h1>", unsafe_allow_html=True)
     r = list_entries()
     if r.status_code != 200:
-        st.error("Could not load dashboard")
+        try:
+            st.error(r.json().get("detail", "Could not load dashboard data."))
+        except requests.exceptions.JSONDecodeError:
+            st.error(f"Server error: {r.text}")
         return
 
     entries = r.json().get("entries", [])
     if not entries:
-        st.info("No mood data yet. Write some entries first!")
+        st.info("No mood data available. Write some journal entries first!")
         return
     
+      # --- Build DataFrame ---
     rows = []
     for e in entries:
         mood = e.get("mood_analysis")
@@ -730,189 +498,61 @@ def render_dashboard_page():
                 "emotion": mood.get("emotion", "Unknown").capitalize(),
                 "sentiment": mood.get("sentiment", "Unknown"),
                 "score": mood.get("score", 0.0),
+                "recommendation": mood.get("recommendation", "")
             })
-    
     df = pd.DataFrame(rows)
     if df.empty:
         st.info("No mood analysis data yet.")
         return
     
+     # --- Latest mood & recommendation ---
     latest = df.sort_values("date", ascending=False).iloc[0]
+
     
-    # Today's Mood Card
+    # ✅ Recommendation box
+    if latest.get("recommendation"):
+        st.markdown(
+            f"""
+            <div style="
+                background:#75ba92;
+                color:white;
+                padding:1rem;
+                border-radius:12px;
+                margin:1rem 0;
+                font-size:1.05rem;
+                font-family:Poppins, sans-serif;
+                box-shadow:0 3px 6px rgba(0,0,0,0.15);
+            ">
+                💡 <b>Recommendation:</b> {latest['recommendation']}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # rows = []
+    # for e in entries:
+    #     if e.get("mood_analysis"):
+    #         rows.append({
+    #             "date": pd.to_datetime(e["created_at"]),
+    #             "emotion": e["mood_analysis"]["emotion"].capitalize(),
+    #             "sentiment": e["mood_analysis"]["sentiment"],
+    #             "score": e["mood_analysis"]["score"]
+    #         })
+    # df = pd.DataFrame(rows)
+    # if df.empty:
+    #     st.info("No mood analysis data yet.")
+    #     return
+
+    # --- Today’s mood ---
+    latest = df.sort_values("date", ascending=False).iloc[0]
     st.markdown(
         f"""
-        <div style='
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 20px;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
-            text-align: center;
-        '>
-            <p style='margin: 0 0 0.5rem 0; opacity: 0.9;'>TODAY'S MOOD</p>
-            <h2 style='margin: 0; font-size: 3rem;'>{latest['emotion']}</h2>
-            <p style='margin: 1rem 0 0 0;'>
-                <strong>{latest['sentiment']}</strong> • Confidence <strong>{latest['score']:.0%}</strong>
-            </p>
-        </div>
+        <h2 style='color:#48BB78;'>
+            Today’s Mood: 
+            <span style='font-size:0.85em; color:#2f855a; font-weight:600;'>
+                {latest['emotion']} ({latest['sentiment']}, Score: {latest['score']:.2f})
+            </span>
+        </h2>
         """,
         unsafe_allow_html=True
     )
-    
-    # Stats Grid
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("📝 Total Entries", len(df))
-    
-    with col2:
-        most_common = df['emotion'].value_counts().idxmax()
-        st.metric("😊 Most Common Mood", most_common)
-    
-    with col3:
-        avg_confidence = df['score'].mean()
-        st.metric("⭐ Avg Confidence", f"{avg_confidence:.0%}")
-    
-    st.markdown("---")
-    
-    # Charts
-    st.markdown("### 📈 Weekly Mood Trend")
-    one_week_ago = datetime.now() - timedelta(days=7)
-    df_week = df[df["date"] >= one_week_ago]
-
-    if not df_week.empty:
-        df_week["day"] = df_week["date"].dt.day_name()
-        day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        
-        weekly_stats = df_week.groupby(["day", "emotion"]).size().reset_index(name="count")
-        
-        chart = alt.Chart(weekly_stats).mark_bar().encode(
-            x=alt.X("day:N", sort=day_order),
-            y="count:Q",
-            color="emotion:N"
-        ).properties(height=300)
-        
-        st.altair_chart(chart, use_container_width=True)
-    else:
-        st.info("No data for this week")
-    
-    st.markdown("### 🎯 Overall Emotion Distribution")
-    emotion_counts = df['emotion'].value_counts().reset_index()
-    emotion_counts.columns = ['emotion', 'count']
-    
-    pie_chart = alt.Chart(emotion_counts).mark_arc().encode(
-        theta="count:Q",
-        color="emotion:N"
-    ).properties(height=400)
-    
-    st.altair_chart(pie_chart, use_container_width=True)
-
-# --- MAIN ---
-def main():
-    st.set_page_config(
-        page_title="MindFlow - AI Journal",
-        layout="wide",
-        page_icon="✨",
-        initial_sidebar_state="expanded"
-    )
-
-    # --- Global Styling ---
-    st.markdown("""
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        html, body, .stApp {
-            background: linear-gradient(135deg, #ffffff 0%, #f5f7ff 100%) !important;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-            color: #1a1a1a !important;
-        }
-        
-        .main .block-container {
-            max-width: 1200px;
-            padding: 2rem 2rem !important;
-        }
-        
-        /* Input styling */
-        input, textarea, .stTextInput input, .stTextArea textarea {
-            background: white !important;
-            border: 1px solid #e0e0e0 !important;
-            border-radius: 10px !important;
-            padding: 0.75rem 1rem !important;
-            font-family: 'Inter', sans-serif !important;
-            transition: all 0.3s ease !important;
-        }
-        
-        input:focus, textarea:focus {
-            border-color: #667eea !important;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
-            outline: none !important;
-        }
-        
-        /* Button styling */
-        .stButton > button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 10px !important;
-            padding: 0.75rem 1.5rem !important;
-            font-weight: 600 !important;
-            transition: all 0.3s ease !important;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .stButton > button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3) !important;
-        }
-        
-        /* Checkbox */
-        .stCheckbox input { accent-color: #667eea !important; }
-        
-        /* Messages */
-        .stSuccess, .stError, .stWarning, .stInfo {
-            border-radius: 12px !important;
-            padding: 1rem !important;
-            margin: 1rem 0 !important;
-        }
-        
-        .stSuccess {
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(56, 142, 60, 0.1)) !important;
-            border-left: 4px solid #4CAF50 !important;
-        }
-        
-        hr {
-            border: none !important;
-            height: 2px !important;
-            background: linear-gradient(90deg, transparent, #667eea, transparent) !important;
-            margin: 2rem 0 !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
-    initialize_session_state()
-    render_sidebar()
-
-    page = st.session_state.page
-    if page == "home":
-        render_home_page()
-    elif page == "register":
-        render_register_page()
-    elif page == "verify":
-        render_verify_page()
-    elif page == "login":
-        render_login_page()
-    elif page == "journal":
-        render_journal_page()
-    elif page == "dashboard":
-        render_dashboard_page()
-    else:
-        st.session_state.page = "home"
-        safe_rerun()
-
-if __name__ == "__main__":
-    main()
