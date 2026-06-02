@@ -556,3 +556,281 @@ def render_dashboard_page():
         """,
         unsafe_allow_html=True
     )
+
+    # Set consistent color scheme
+    color_scheme = alt.Scale(scheme="tableau10")
+    
+
+    # ================================
+    # Weekly Mood Trend (Past 7 days)
+    # ================================
+    st.markdown("<h2 style='color:#5A67D8;'>Weekly Mood Trend</h2>", unsafe_allow_html=True)
+    one_week_ago = datetime.now() - timedelta(days=7)
+    df_week = df[df["date"] >= one_week_ago]
+
+    if not df_week.empty:
+        df_week["day"] = df_week["date"].dt.day_name()
+        day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+        weekly_stats = df_week.groupby(["day", "emotion"]).agg(
+            count=("score", "size"),
+            avg_score=("score", "mean")
+        ).reset_index()
+
+        # Ensure all days are included
+        all_days = pd.DataFrame({"day": day_order})
+        weekly_stats = all_days.merge(weekly_stats, on="day", how="left").fillna({"count": 0, "avg_score": 0})
+
+        chart = (
+            alt.Chart(weekly_stats)
+            .mark_bar(size=40)
+            .encode(
+                x=alt.X("day:N", title="Day of Week", sort=day_order),
+                y=alt.Y("count:Q", title="Mood Count"),
+                color=alt.Color("emotion:N", scale=color_scheme),
+                tooltip=["day", "emotion", "count", alt.Tooltip("avg_score:Q", format=".2f")]
+            )
+            .properties(width=700, height=300, title="Weekly Mood Counts & Scores")
+            .configure_view(strokeWidth=0, fill="#F9FAFB")
+        )
+        st.altair_chart(chart, use_container_width=True)
+
+    # ================================
+    # Monthly Mood Distribution (Past 1 month)
+    # ================================
+    st.markdown("<h2 style='color:#5A67D8;'>Monthly Mood Distribution</h2>", unsafe_allow_html=True)
+    one_month_ago = datetime.now() - timedelta(days=30)
+    df_month = df[df["date"] >= one_month_ago]
+
+    def week_label(day):
+        if day <= 7: return "Week 1 (1–7)"
+        elif day <= 14: return "Week 2 (8–14)"
+        elif day <= 21: return "Week 3 (15–21)"
+        elif day <= 28: return "Week 4 (22–28)"
+        else: return "Week 5 (29–31)"
+
+    week_order = ["Week 1 (1–7)", "Week 2 (8–14)", "Week 3 (15–21)", "Week 4 (22–28)", "Week 5 (29–31)"]
+
+    if not df_month.empty:
+        df_month["week_of_month"] = df_month["date"].dt.day.apply(week_label)
+        month_stats = df_month.groupby(["week_of_month", "emotion"]).agg(
+            count=("score", "size"),
+            avg_score=("score", "mean")
+        ).reset_index()
+
+        # Ensure all weeks are included
+        all_weeks = pd.DataFrame({"week_of_month": week_order})
+        month_stats = all_weeks.merge(month_stats, on="week_of_month", how="left").fillna({"count": 0, "avg_score": 0})
+
+        chart = (
+            alt.Chart(month_stats)
+            .mark_bar(size=40)
+            .encode(
+                x=alt.X("week_of_month:N", title="Week of Month", sort=week_order),
+                y=alt.Y("count:Q", title="Mood Count"),
+                color=alt.Color("emotion:N", scale=color_scheme),
+                tooltip=["week_of_month", "emotion", "count", alt.Tooltip("avg_score:Q", format=".2f")]
+            )
+            .properties(width=700, height=300, title="Monthly Mood Counts & Scores")
+            .configure_view(strokeWidth=0, fill="#F9FAFB")
+        )
+        st.altair_chart(chart, use_container_width=True)
+
+    # ================================
+    # Yearly Overall Emotion Distribution (Past 1 year)
+    # ================================
+    st.markdown("<h2 style='color:#5A67D8;'>Overall Emotion Distribution</h2>", unsafe_allow_html=True)
+    one_year_ago = datetime.now() - timedelta(days=365)
+    df_year = df[df["date"] >= one_year_ago]
+
+    if not df_year.empty:
+        pie_data = df_year["emotion"].value_counts().reset_index()
+        pie_data.columns = ["emotion", "count"]
+
+        pie_chart = (
+            alt.Chart(pie_data)
+            .mark_arc()
+            .encode(
+                theta="count:Q",
+                color=alt.Color("emotion:N", scale=color_scheme),
+                tooltip=["emotion", "count"]
+            )
+            .properties(width=500, height=400, title="Emotion Distribution (Past Year)")
+            .configure_view(strokeWidth=0, fill="#F9FAFB")
+        )
+        st.altair_chart(pie_chart, use_container_width=True)
+
+
+
+# --- Main ---
+def main():
+    st.set_page_config(page_title="AI Journal", layout="centered", page_icon="📝")
+
+    
+    # --- Modern CSS Theme ---
+    st.markdown("""
+<style> 
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+  :root{
+    --primary-color: #5A67D8;        /* Deep Indigo */
+    --primary-color-dark: #4C51BF;   /* Darker Indigo */
+    --secondary-color: #48BB78;      /* Calm Green */
+    --accent-color: #F6AD55;         /* Warm Orange */
+    --background-color: #F9FAFB;     /* Light background */
+    --text-color: #2D3748;
+    --light-gray: #E2E8F0;
+    --white: #FFFFFF;
+    --button-width: 220px;
+  }
+
+  /* ✅ Keep whole app background light */
+  .stApp, .main .block-container, html, body {
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  /* Sidebar background */
+  section[data-testid="stSidebar"],
+  div[data-testid="stSidebar"] {
+    background-color: #dedede !important;
+    border-right: 1px solid rgba(0,0,0,0.06);
+  }
+  section[data-testid="stSidebar"] *,
+  div[data-testid="stSidebar"] * {
+    color: #000000 !important;
+    background-color: transparent !important;
+  }
+
+/* ✨ Form container (Login/Register card) */
+  .stForm {
+    background: var(--white) !important;
+    padding: 2.5rem !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.08) !important;
+    margin: 3rem auto !important;
+    max-width: 520px !important;
+    font-size: 15px !important;
+  }
+
+  /* 📝 Input fields */
+  input[type="text"], input[type="password"], input[type="email"], textarea {
+    background: var(--white) !important;
+    border: 1px solid var(--light-gray) !important;
+    color: var(--text-color) !important;
+    border-radius: 10px !important;
+    padding: 12px 14px !important;
+    width: 100% !important;
+    font-size: 15px !important;
+  }
+  input:focus, textarea:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(90,103,216,0.25) !important;
+    outline: none !important;
+  }
+
+    
+  /* 🔥 Primary Buttons (Login/Register/Verify) */
+  button[kind="primary"],
+  div.stButton>button,
+  div[data-testid="stFormSubmitButton"] button,
+  form .stButton>button {
+    width: var(--button-width) !important;
+    padding: 12px 16px !important;
+    border-radius: 10px !important;
+    background-color: var(--primary-color) !important;
+    color: var(--white) !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    border: none !important;
+    background-image: none !important;
+    transition: all 0.2s ease-in-out !important;
+    
+  }
+
+  /* Hover effect */
+  button[kind="primary"]:hover,
+  div.stButton>button:hover,
+  div[data-testid="stFormSubmitButton"] button:hover,
+  form .stButton>button:hover {
+    background-color: var(--primary-color-dark) !important;
+    box-shadow: 0 6px 18px rgba(90,103,216,0.18) !important;
+    transform: translateY(-2px);
+  }
+
+  /* ✅ Checkbox styling */
+  .stCheckbox input[type="checkbox"] {
+    accent-color: var(--primary-color) !important;
+    transform: scale(1.2);
+    margin-right: 8px;
+  }
+  .stCheckbox label {
+    font-size: 14px !important;
+    color: var(--text-color) !important;
+    font-weight: 500 !important;
+  }
+
+  /* Titles */
+  h1, h2, h3, h4 {
+    color: var(--primary-color) !important;
+    font-weight: 700 !important;
+  }
+  
+
+                
+ /* ✅ Force visible text inside login/register form */
+  .stForm, .stForm * {
+      color: var(--text-color) !important;
+  }
+
+  /* ✅ Labels and placeholder text */
+  label, .stTextInput label, .stPasswordInput label, .stEmailInput label {
+      font-size: 15px !important;
+      font-weight: 500 !important;
+      color: var(--text-color) !important;
+  }
+  input::placeholder, textarea::placeholder {
+      color: #718096 !important; /* softer gray for hint text */
+      font-size: 15px !important;
+  }
+
+  /* ✅ Bigger inputs */
+  input[type="text"], input[type="password"], input[type="email"], textarea {
+      font-size: 16px !important;
+  }
+
+  /* ✅ Buttons inside login/register form */
+  .stForm .stButton>button {
+      font-size: 16px !important;
+      color: var(--white) !important;
+  }
+ 
+</style>
+
+    """, unsafe_allow_html=True)
+
+    st.markdown(
+        "<h1 style='color:#5A67D8;font-family:Poppins,sans-serif;text-align:center;'>AI-Powered Personal Journal</h1>", 
+        unsafe_allow_html=True
+    )
+
+
+
+
+    initialize_session_state()
+    render_sidebar()
+
+    page = st.session_state.page
+    if page == "home": render_home_page()
+    elif page == "register": render_register_page()
+    elif page == "verify": render_verify_page()
+    elif page == "login": render_login_page()
+    elif page == "journal": render_journal_page()
+    elif page == "dashboard": render_dashboard_page()
+    else:
+        st.session_state.page = "home"
+        safe_rerun()
+
+if __name__ == "__main__":
+    main()
